@@ -34,9 +34,9 @@ exports.sourceNodes = async ({
 
   assets.forEach(asset => asset.path = host + '/storage/uploads' + asset.path);
 
-  exports.collectionsItems = collectionsItems;
-  exports.singletonsItems = singletonsItems;
-  exports.collectionsNames = collectionNames;
+  extendNodeType.inputs.collectionsItems = collectionsItems;
+  extendNodeType.inputs.singletonsItems = singletonsItems;
+  extendNodeType.inputs.collectionsNames = collectionNames;
  
   const assetMapHelpers = new AssetMapHelpers({
     assets,
