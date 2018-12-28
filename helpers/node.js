@@ -113,7 +113,7 @@ module.exports = class CreateNodesHelpers {
       if (lang != null && fields[fieldname].localize) {
         fieldname = `${fieldname}_${lang}`;
         // if there is nothing in the entry, fallback to the default
-        if (entry[fieldname]._id == null) {
+        if (entry[fieldname] == null || entry[fieldname]._id == null) {
           fieldname = originalFieldname;
         }
       }
@@ -121,7 +121,7 @@ module.exports = class CreateNodesHelpers {
       const key = originalFieldname + '___NODE';
       const newAcc = {
         ...acc,
-        [key]: entry[fieldname]._id,
+        [key]: entry[fieldname]._id + '_' + lang,
       };
       return newAcc;
     }, {});
