@@ -13,6 +13,7 @@ exports.sourceNodes = async ({
     accessToken: '',
     sanitizeHtmlConfig: {},    
     customComponents: [],
+    availableLngs: []
   }
   
   const config = Object.assign(defaultConfig, pluginOptions.cockpitConfig);

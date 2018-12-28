@@ -25,13 +25,13 @@ module.exports = class CreateNodesHelpers {
     Promise.all(      
       this.collectionsItems.map(({ fields, entries, name }) => {
         
-        const nodes = entries.map(entry =>
+        const nodes = [].concat.apply([], entries.map(entry =>
           this.createCollectionItemNode({
             entry,
             name,
             fields,
           })
-        );
+        ));
 
         return { name, nodes, fields };
       }),
@@ -79,8 +79,17 @@ module.exports = class CreateNodesHelpers {
 
   // map the entry image fields to link to the asset node
   // the important part is the `___NODE`.
-  composeEntryAssetFields(assetFields, entry) {
+  composeEntryAssetFields(fields, assetFields, entry, lang) {
     return assetFields.reduce((acc, fieldname) => {
+      const originalFieldname = fieldname;
+      if (lang != null && fields[fieldname].localize) {
+        fieldname = `${fieldname}_${lang}`;
+        // if there is nothing in the entry, fallback to the default
+        if (entry[fieldname].path == null) {
+          fieldname = originalFieldname;
+        }
+      }
+
       if (entry[fieldname].path == null) {
         return acc;
       }
@@ -90,7 +99,7 @@ module.exports = class CreateNodesHelpers {
       entry[fieldname].localFile___NODE = fileLocation;
       const newAcc = {
         ...acc,
-        [fieldname]: entry[fieldname],
+        [originalFieldname]: entry[fieldname],
       };
       return newAcc;
     }, {});
@@ -98,10 +107,18 @@ module.exports = class CreateNodesHelpers {
 
   // map the entry CollectionLink fields to link to the asset node
   // the important part is the `___NODE`.
-  composeEntryCollectionLinkFields(collectionLinkFields, entry) {
+  composeEntryCollectionLinkFields(fields, collectionLinkFields, entry, lang) {
     return collectionLinkFields.reduce((acc, fieldname) => {
+      const originalFieldname = fieldname;
+      if (lang != null && fields[fieldname].localize) {
+        fieldname = `${fieldname}_${lang}`;
+        // if there is nothing in the entry, fallback to the default
+        if (entry[fieldname]._id == null) {
+          fieldname = originalFieldname;
+        }
+      }
 
-      const key = fieldname + '___NODE';
+      const key = originalFieldname + '___NODE';
       const newAcc = {
         ...acc,
         [key]: entry[fieldname]._id,
@@ -281,9 +298,18 @@ module.exports = class CreateNodesHelpers {
     };
   }
 
-  composeEntryLayoutFields(layoutFields, entry) {
+  composeEntryLayoutFields(fields, layoutFields, entry, lang) {
 
     return layoutFields.reduce((acc, fieldname) => {
+      const originalFieldname = fieldname;
+      if (lang != null && fields[fieldname].localize) {
+        fieldname = `${fieldname}_${lang}`;
+        // if there is nothing in the entry, fallback to the default
+        if (entry[fieldname] == null) {
+          fieldname = originalFieldname;
+        }
+      }
+
       if( entry[fieldname] == null) return;
       if(typeof entry[fieldname] === 'string')entry[fieldname] = eval('(' + entry[fieldname] + ')');
       
@@ -293,7 +319,7 @@ module.exports = class CreateNodesHelpers {
       const {parsedLayout, layoutAssets} = this.parseLayout(entry[fieldname], fieldname);      
       
       if(layoutAssets.length > 0) {
-        const key = fieldname + '_files___NODE';
+        const key = originalFieldname + '_files___NODE';
         if(acc[key] !== undefined)acc[key] = acc[key].concat(layoutAssets);
         else acc[key] = layoutAssets;
       }
@@ -303,57 +329,113 @@ module.exports = class CreateNodesHelpers {
     }, {});
   }
 
-  composeEntryWithOtherFields(otherFields, entry) {
+  composeEntryWithOtherFields(fields, otherFields, entry, lang) {
     return otherFields.reduce(
-      (acc, fieldname) => ({
-        ...acc,
-        [fieldname]: entry[fieldname],
-      }),
+      (acc, fieldname) => {
+        const originalFieldname = fieldname;
+        if (lang != null && fields[fieldname].localize) {
+          fieldname = `${fieldname}_${lang}`;
+          // if there is nothing in the entry, fallback to the default
+          if (entry[fieldname] == null) {
+            fieldname = originalFieldname;
+          }
+        }
+
+        return ({
+          ...acc,
+          [originalFieldname]: entry[fieldname],
+        })
+      },
       {}
     );
   }
 
   createCollectionItemNode({ entry, fields, name }) {
-
+    const nodes = [];
     //1
     const imageFields = this.getImageFields(fields);
     const assetFields = this.getAssetFields(fields);
     const layoutFields = this.getLayoutFields(fields);
     const collectionLinkFields = this.getCollectionLinkFields(fields);
     const otherFields = this.getOtherFields(fields);
-    //2
-    const entryImageFields = this.composeEntryAssetFields(imageFields, entry);
-    const entryAssetFields = this.composeEntryAssetFields(assetFields, entry);
-    const entryCollectionLinkFields = this.composeEntryCollectionLinkFields(collectionLinkFields, entry);
-    const entryLayoutFields = this.composeEntryLayoutFields(
-      layoutFields,
-      entry
-    );
-    const entryWithOtherFields = this.composeEntryWithOtherFields(
-      otherFields,
-      entry
-    );
 
-    //3
-    const node = {
-      ...entryWithOtherFields,
-      ...entryImageFields,
-      ...entryAssetFields,
-      ...entryCollectionLinkFields,
-      ...entryLayoutFields,
-      id: entry._id,
-      children: [],
-      parent: null,
-      internal: {
-        type: singular(name),
-        contentDigest: crypto
-          .createHash(`md5`)
-          .update(JSON.stringify(entry))
-          .digest(`hex`),
-      },
-    };
-    this.createNode(node);
-    return node;
+    if (this.config.availableLngs.length > 0) {
+      for (const lang of this.config.availableLngs) {
+        //2
+        const entryImageFields = this.composeEntryAssetFields(fields, imageFields, entry, lang);
+        const entryAssetFields = this.composeEntryAssetFields(fields, assetFields, entry, lang);
+        const entryCollectionLinkFields = this.composeEntryCollectionLinkFields(fields, collectionLinkFields, entry, lang);
+        const entryLayoutFields = this.composeEntryLayoutFields(
+          fields, 
+          layoutFields,
+          entry,
+          lang
+        );
+        const entryWithOtherFields = this.composeEntryWithOtherFields(
+          fields, 
+          otherFields,
+          entry,
+          lang
+        );
+        //3
+        const node = {
+          ...entryWithOtherFields,
+          ...entryImageFields,
+          ...entryAssetFields,
+          ...entryCollectionLinkFields,
+          ...entryLayoutFields,
+          lang: lang,
+          id: entry._id + '_' + lang,
+          children: [],
+          parent: null,
+          internal: {
+            type: singular(name),
+            contentDigest: crypto
+              .createHash(`md5`)
+              .update(JSON.stringify(entry) + '_' + lang)
+              .digest(`hex`),
+          },
+        };
+        this.createNode(node);
+        nodes.push(node);
+      }
+    } else {
+      //2
+      const entryImageFields = this.composeEntryAssetFields(fields, imageFields, entry);
+      const entryAssetFields = this.composeEntryAssetFields(fields, assetFields, entry);
+      const entryCollectionLinkFields = this.composeEntryCollectionLinkFields(fields, collectionLinkFields, entry);
+      const entryLayoutFields = this.composeEntryLayoutFields(
+        fields, 
+        layoutFields,
+        entry
+      );
+      const entryWithOtherFields = this.composeEntryWithOtherFields(
+        fields, 
+        otherFields,
+        entry
+      );
+      //3
+      const node = {
+        ...entryWithOtherFields,
+        ...entryImageFields,
+        ...entryAssetFields,
+        ...entryCollectionLinkFields,
+        ...entryLayoutFields,
+        id: entry._id,
+        children: [],
+        parent: null,
+        internal: {
+          type: singular(name),
+          contentDigest: crypto
+            .createHash(`md5`)
+            .update(JSON.stringify(entry))
+            .digest(`hex`),
+        },
+      };
+      this.createNode(node);
+      nodes.push(node);
+    }
+    return nodes;
   }
 
   createSingletonItemNode({ data, name }) {

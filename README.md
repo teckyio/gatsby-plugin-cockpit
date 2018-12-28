@@ -33,6 +33,7 @@ Add the following to `gatsby-config.js`
           accessToken: '4d659efb084077fd24aeb4871d4386',
           collections: ['posts'],
           regions: ['footer'],
+          availableLngs: ['en', 'fr'],
           customComponents: [],
         },
       },
@@ -49,6 +50,7 @@ Add the following to `gatsby-config.js`
 | **accessToken**      | *required* | *none*  | A valid API access token to you cockpit installation. See the [Cockpit Documentation](https://getcockpit.com/documentation/api/token) |
 | **collections**      | *optional* | *[]*    | The specific Cockpit collections you want to fetch. If empty all collections will be fetched. |
 | **regions**          | *optional* | *[]*    | The specific Cockpit regions you want to fetch. If empty all regions will be fetched. |
+| **availableLngs**    | *optional* | *[]*    | If you have set locale in the cockpit setting, set the keys here and a new field `lang` will be added for you to filter items in different language. |
 | **customComponents** | *optional* | *[]*    | If you have defined some custom components for you cockpit layout fields and want them to be parsed for image fields. |
 
 ## How to Query
