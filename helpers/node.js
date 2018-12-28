@@ -5,7 +5,7 @@ const validUrl = require('valid-url');
 module.exports = class CreateNodesHelpers {
   constructor({
     collectionsItems,
-    regionsItems,
+    singletonsItems,
     store,
     cache,
     createNode,
@@ -13,7 +13,7 @@ module.exports = class CreateNodesHelpers {
     config,
   }) {
     this.collectionsItems = collectionsItems;
-    this.regionsItems = regionsItems;
+    this.singletonsItems = singletonsItems;
     this.store = store;
     this.cache = cache;
     this.createNode = createNode;
@@ -35,14 +35,14 @@ module.exports = class CreateNodesHelpers {
 
         return { name, nodes, fields };
       }),
-      this.regionsItems.map( ({ name, data }) => {
+      this.singletonsItems.map( ({ name, data }) => {
 
-        const node = this.createRegionItemNode({
+        const node = this.createSingletonItemNode({
           data,
           name,
         });
 
-        return { name: 'region', node };
+        return { name: 'singleton', node };
       })
     );
   }
@@ -356,16 +356,16 @@ module.exports = class CreateNodesHelpers {
     return node;
   }
 
-  createRegionItemNode({ data, name }) {
+  createSingletonItemNode({ data, name }) {
 
     const node = {
       ...data,
       name: name,
       children: [],
       parent: null,
-      id: `region-${name}`,
+      id: `singleton-${name}`,
       internal: {
-        type: 'region',
+        type: 'singleton',
         contentDigest: crypto
           .createHash(`md5`)
           .update(JSON.stringify(data))
