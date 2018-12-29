@@ -118,6 +118,10 @@ module.exports = class CreateNodesHelpers {
         }
       }
 
+      if (entry[fieldname] == null || entry[fieldname]._id == null) {
+        return acc;
+      }
+
       const key = originalFieldname + '___NODE';
       const newAcc = {
         ...acc,
